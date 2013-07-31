@@ -1,57 +1,114 @@
-""" Stores functions for rendering menus with curses. Most functions require a
-    curses screen as an argument.
+""" Stores functions for rendering menus with curses.
 """
 
 import curses
 
-# Global variable to control screen updates
-_refresh = False
+# ----------------------------------------
+# Menu Logic and Rendering Functions
+# ----------------------------------------
 
-def main(screen, exit_key='q'):
-    # Menu options
-    # (selection key, function, description)
-    options = [('1', study_collection, "1 - Study Collection")
-              ,('2', new_collection, "2 - New Collection")
-              ]
+# Use this function to enter into the menu system. Handles input and
+# navigation through the system. Requires an initialized Curses screen.
+def init(screen, exit_key='q'):
+    _refresh = None     # Used for determining when to update the _screen.
+    global _screen
+    _screen = screen
 
-    # Draw the menu
-    screen.border()
-    screen.move(5, 5)
-    i = 0
-    for option in options:
-        i += 1
-        screen.move(i, 5)
-        screen.addstr(option[2])
-    _refresh = True
+    main()
 
     while True:
         # Check for the exit key
-        char = screen.getch()
+        char = _screen.getch()
         if char == ord(exit_key):
             break
 
-        for option in options:
-            if char == ord(option[0]):
-                option[1](screen)
+        # Handle option input
+        option = get_option(char)
+        if option:
+            option[1]()
 
+        # Refresh the screen if necessary
         if _refresh:
-            screen.refresh()
+            _screen.refresh()
             _refresh = False
 
-def study_collection(screen):
+# The main menu. Use init() to enter the menu system.
+def main():
+    set_refresh()
+
+    clear_options()
+    add_option('1', study_collection, "1 - Study Collection")
+    add_option('2', new_collection, "2 - New Collection")
+
+    print_options(0, 5)
+
+def study_collection():
+    set_refresh()
+
+    # Initialize options
+    clear_options()
+    add_option('1', main, "1 - Go Back")
+    add_option('2', main, "2 - Test Collection")
+
+    # Draw the menu
+    print_options(0, 5)
+
+def new_collection():
     pass
 
-def new_collection(screen):
+def new_slide():
     pass
 
-def new_slide(screen):
+def remove_slide():
     pass
 
-def remove_slide(screen):
+def edit_slide():
     pass
 
-def edit_slide(screen):
+def remove_collection():
     pass
 
-def remove_collection(screen):
-    pass
+def print_options(y, x):
+    i = 0
+    for option in _options:
+        i += 1
+        _screen.move(y+i, x)
+        _screen.addstr(option[2])
+
+def set_refresh():
+    _screen.clear()
+    _screen.border()
+    _refresh = True
+
+# **********************************************
+# * Internal Functions -- Don't use elsewhere. *
+# **********************************************
+
+# The Curses screen being drawn to. This should be set once when the main
+# function is entered. Don't change it unless you really mean it.
+_screen = None
+
+# ----------------------------------------
+# Menu Options
+# ----------------------------------------
+
+# Do not set this manually. Use the functions below.
+# (selection key, function, description)
+_options = []
+
+# Add a menu option
+def add_option(key, function, description):
+    _options.append( (key, function, description) )
+
+# Remove all menu options
+def clear_options():
+    _options.clear()
+
+# Returns the option tuple for a given key. Returns None if there is no
+# option associated with the key.
+def get_option(key):
+    for option in _options:
+        if key == ord(option[0]):
+            return option
+
+    return None

@@ -29,12 +29,12 @@ if __name__ == "__main__":
     screen = curses.initscr()
 
     curses.noecho()
-    curses.halfdelay(1)
+    #curses.halfdelay(2)
     screen.keypad(True)
     curses.cbreak()
 
     # Enter the main menu
-    menu.main(screen)
+    menu.init(screen)
 
     # Clean up
     curses.nocbreak()
