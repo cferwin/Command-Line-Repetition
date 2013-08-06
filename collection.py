@@ -7,6 +7,9 @@ class Collection:
         self.name = name
         self.slides = []
 
+    def __str__(self):
+        return self.name
+
     def add_slide(self, slide):
         """ Add a slide to the collection. """
         self.slides.append(slide)

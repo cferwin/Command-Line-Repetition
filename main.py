@@ -1,7 +1,7 @@
-import curses
+import urwid
 from slide import Slide
 from collection import Collection
-import menu
+from menu import Menu
 
 # ----------------------------------------
 # TEST DATA
@@ -25,20 +25,6 @@ for collection in collections:
 # ----------------------------------------
 
 if __name__ == "__main__":
-    # Set up a Curses screen
-    screen = curses.initscr()
-
-    curses.noecho()
-    #curses.halfdelay(2)
-    screen.keypad(True)
-    curses.cbreak()
-
     # Enter the main menu
-    menu.init(screen)
-
-    # Clean up
-    curses.nocbreak()
-    screen.keypad(False)
-    curses.echo()
-
-    curses.endwin()
+    menu = Menu(collections)
+    menu.run()

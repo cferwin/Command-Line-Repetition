@@ -1,114 +1,62 @@
-""" Stores functions for rendering menus with curses.
+""" Stores functions for rendering menus with Urwid.
 """
 
-import curses
+import urwid
 
-# ----------------------------------------
-# Menu Logic and Rendering Functions
-# ----------------------------------------
+class Menu():
+    def __init__(self, collections):
+        self.collections = collections
+        self.main = urwid.Padding(
+            self.selection_menu(u'Spaced Repetition', collections, self.choose_slide),
+            left = 2, right = 2)
 
-# Use this function to enter into the menu system. Handles input and
-# navigation through the system. Requires an initialized Curses screen.
-def init(screen, exit_key='q'):
-    _refresh = None     # Used for determining when to update the _screen.
-    global _screen
-    _screen = screen
+        self.top = urwid.Overlay(self.main,
+            urwid.SolidFill(u'\N{MEDIUM SHADE}'),
+            align = 'center', width = ('relative', 60),
+            valign = 'middle', height = ('relative', 60),
+            min_width = 20, min_height = 9)
 
-    main()
+    def run(self):
+        urwid.MainLoop(self.top, palette=[('reversed', 'standout', '')]).run()
 
-    while True:
-        # Check for the exit key
-        char = _screen.getch()
-        if char == ord(exit_key):
-            break
+    def exit_program(self, button):
+        raise urwid.ExitMainLoop()
 
-        # Handle option input
-        option = get_option(char)
-        if option:
-            option[1]()
+    # ----------------------------------------
+    # Specific menu screens
 
-        # Refresh the screen if necessary
-        if _refresh:
-            _screen.refresh()
-            _refresh = False
+    def item_chosen(self, button, choice):
+        response = urwid.Text([u'You chose ', str(choice), u'\n'])
+        done = urwid.Button(u'Ok')
 
-# The main menu. Use init() to enter the menu system.
-def main():
-    set_refresh()
+        urwid.connect_signal(done, 'click', self.exit_program)
+        self.main.original_widget = urwid.Filler(urwid.Pile([
+            response, urwid.AttrMap(done, None, focus_map='reversed')]))
 
-    clear_options()
-    add_option('1', study_collection, "1 - Study Collection")
-    add_option('2', new_collection, "2 - New Collection")
+    def choose_slide(self, button, collection):
+        self.main.original_widget = urwid.Padding(
+            self.selection_menu(
+                collection.name,
+                collection.slides,
+                self.item_chosen))
 
-    print_options(0, 5)
+    def choose_collection(self, button):
+        self.main.original_widget = urwid.Padding(
+            self.selection_menu(
+                'Choose a collection',
+                self.collections,
+                self.choose_slide))
 
-def study_collection():
-    set_refresh()
+    # ----------------------------------------
+    # Constructors for menu structures
 
-    # Initialize options
-    clear_options()
-    add_option('1', main, "1 - Go Back")
-    add_option('2', main, "2 - Test Collection")
+    def selection_menu(self, title, choices, callback):
+        body = [urwid.Text(title), urwid.Divider()]
 
-    # Draw the menu
-    print_options(0, 5)
+        for c in choices:
+            button = urwid.Button(str(c))
 
-def new_collection():
-    pass
+            urwid.connect_signal(button, 'click', callback, c)
+            body.append(urwid.AttrMap(button, None, focus_map='reversed'))
 
-def new_slide():
-    pass
-
-def remove_slide():
-    pass
-
-def edit_slide():
-    pass
-
-def remove_collection():
-    pass
-
-def print_options(y, x):
-    i = 0
-    for option in _options:
-        i += 1
-        _screen.move(y+i, x)
-        _screen.addstr(option[2])
-
-def set_refresh():
-    _screen.clear()
-    _screen.border()
-    _refresh = True
-
-# **********************************************
-# * Internal Functions -- Don't use elsewhere. *
-# **********************************************
-
-# The Curses screen being drawn to. This should be set once when the main
-# function is entered. Don't change it unless you really mean it.
-_screen = None
-
-# ----------------------------------------
-# Menu Options
-# ----------------------------------------
-
-# Do not set this manually. Use the functions below.
-# (selection key, function, description)
-_options = []
-
-# Add a menu option
-def add_option(key, function, description):
-    _options.append( (key, function, description) )
-
-# Remove all menu options
-def clear_options():
-    _options.clear()
-
-# Returns the option tuple for a given key. Returns None if there is no
-# option associated with the key.
-def get_option(key):
-    for option in _options:
-        if key == ord(option[0]):
-            return option
-
-    return None
+        return urwid.ListBox(urwid.SimpleFocusListWalker(body))
