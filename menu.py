@@ -10,7 +10,8 @@ class Menu():
         options = [
             ('New Collection', self.new_collection),
             ('Study Collection', self.choose_collection),
-            ('Edit Collection', self.choose_collection)]
+            ('Edit Collection', self.choose_collection),
+            ('Exit', self.exit)]
 
         self.main = urwid.Padding(
             self.router_menu(u'Spaced Repetition', options),
@@ -33,11 +34,12 @@ class Menu():
     # ----------------------------------------
     # Specific menu screens
 
-    def main(self):
+    def main_menu(self, button=None, data=None):
         options = [
             ('New Collection', self.new_collection),
             ('Study Collection', self.choose_collection),
-            ('Edit Collection', self.choose_collection)]
+            ('Edit Collection', self.choose_collection),
+            ('Exit', self.exit)]
 
         self.main.original_widget = urwid.Padding(
             self.router_menu(u'Spaced Repetition', options))
@@ -72,28 +74,57 @@ class Menu():
                 'new_collection' menu.
             """
 
-            # TODO: Rewrite this function to create a new Collection. This is
-            # just a stand-in.
             fields = dialogue_menu.get_fields()
+            collection = Collection(fields['Name'])
+            self.collections.append(collection)
 
-            self.item_chosen(button,
-                "\nName: " + fields['Name']
-                + "\nDescription: " + fields['Description'])
+            self.edit_collection(None, collection)
+
+        # ----------------------------------------
+        # Start of new_collection() code
 
         menu = DialogueMenu(
                 'Choose a collection',
-                ['Name', 'Description'],
+                ['Name'],
                 do_new_collection,
-                self.main)
+                self.main_menu)
+
+        self.main.original_widget = urwid.Padding(menu.get_widget())
+    
+    def edit_collection(self, button, collection):
+        """ Render the menu for editing a collection """
+
+        def do_edit_collection(button, dialogue_menu):
+            """ Modify the collection with the data entered in the menu. """
+
+            fields = dialogue_menu.get_fields()
+
+            if fields['Name'] != "":
+                collection.name = fields['Name']
+
+            self.main_menu()
+
+        # ----------------------------------------
+        # Start of edit_collection() code
+
+        menu = DialogueMenu(
+                "Edit " + collection.name + ". Leave blank any field which you do not want to change.",
+                ['Name'],
+                do_edit_collection,
+                self.main_menu)
 
         self.main.original_widget = urwid.Padding(menu.get_widget())
 
     # ----------------------------------------
     # Constructors for menu structures
 
-    def selection_menu(self, title, choices, callback):
+    def selection_menu(self, title, choices, callback, cancel=None):
+        if not cancel:
+            cancel = self.main_menu
         body = [urwid.Text(title), urwid.Divider()]
 
+        button = urwid.Button('Cancel', cancel)
+        body.append(urwid.AttrMap(button, None, focus_map='reversed'))
         for c in choices:
             button = urwid.Button(str(c), callback, c)
 
