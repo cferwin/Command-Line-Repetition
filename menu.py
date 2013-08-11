@@ -85,11 +85,11 @@ class Menu():
 
         menu = DialogueMenu(
                 'Choose a collection',
-                ['Name'],
                 do_new_collection,
                 self.main_menu)
+        menu.add_field("Name")
 
-        self.main.original_widget = urwid.Padding(menu.get_widget())
+        self.main.original_widget = urwid.Padding(menu)
     
     def edit_collection(self, button, collection):
         """ Render the menu for editing a collection """
@@ -109,11 +109,11 @@ class Menu():
 
         menu = DialogueMenu(
                 "Edit " + collection.name + ". Leave blank any field which you do not want to change.",
-                ['Name'],
                 do_edit_collection,
                 self.main_menu)
+        menu.add_field("Name")
 
-        self.main.original_widget = urwid.Padding(menu.get_widget())
+        self.main.original_widget = urwid.Padding(menu)
 
     # ----------------------------------------
     # Constructors for menu structures
@@ -142,48 +142,31 @@ class Menu():
 
         return urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
-class DialogueMenu:
-    # TODO: Turn this class into a functional Urwid Widget?
-
-    def __init__(self, title, field_labels, forward, back):
-        """ Variables:
-            title           string      Title of the menu.
-            field_labels    array       Array of strings -- labels for the
-                                        edit widgets which make up the menu.
-            forward         function    Called when 'OK' button is pressed.
-            back            function    Called when 'Cancel' button is
-                                        pressed.
-        """
-
-        self._field_widgets = []
-
-        self.body = [urwid.Text(title), urwid.Divider()]
+class DialogueMenu(urwid.WidgetWrap):
+    def __init__(self, title, forward, back):
         ok = urwid.Button("OK", forward, self)
         cancel = urwid.Button("Cancel", back, self)
+        self.head = [urwid.Text(title), urwid.Divider()]
+        self.body = []
+        self.foot = [ok, cancel]
+        self._update_widget()
 
-        # Add Edit widgets (fields)
-        for field in field_labels:
-            widget = self._dialogue_box(field)
+    def add_field(self, label):
+        """ Adds an Edit widget to the body """
+        widget = self._dialogue_box(label)
 
-            self.body.append(urwid.AttrMap(
-                widget, None, focus_map='reversed'))
-            self._field_widgets.append(widget)
-
-        # Add OK and Cancel buttons
-        self.body.append(urwid.AttrMap(ok, None, focus_map='reversed'))
-        self.body.append(urwid.AttrMap(cancel, None, focus_map='reversed'))
-
-    def get_widget(self):
-        """ Returns a renderable widget representing the Dialogue Menu. """
-        return urwid.ListBox(urwid.SimpleFocusListWalker(self.body))
+        #self.body.append(urwid.AttrMap(
+            #widget, None, focus_map='reversed'))
+        self.body.append(widget)
+        self._update_widget()
 
     def get_fields(self):
         """ Returns the contents of all the dialogue boxes in a dictionary
-            with the form, {"label", "contents"}
+            with the form, {"label": "contents"}
         """
 
         fields = {}
-        for widget in self._field_widgets:
+        for widget in self.body:
             label = widget.caption
             contents = widget.get_edit_text()
             fields[label] = contents
@@ -192,5 +175,11 @@ class DialogueMenu:
 
     def _dialogue_box(self, query):
         # Constructs a widget for a dialogue box.
-        return urwid.Edit(('I say', query))
+        return urwid.Edit(query)
 
+    def _update_widget(self):
+        # Recreates the display widget. This should be called whenenver
+        # anything is added to head, body, or foot.
+        self.widget = urwid.ListBox(urwid.SimpleFocusListWalker(
+            self.head + self.body + self.foot))
+        super().__init__(self.widget)
