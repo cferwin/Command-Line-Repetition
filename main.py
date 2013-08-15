@@ -1,7 +1,7 @@
 import urwid
 from slide import Slide
 from collection import Collection
-from menu import Menu
+from menu import MainMenu
 
 # ----------------------------------------
 # TEST DATA
@@ -26,5 +26,5 @@ for collection in collections:
 
 if __name__ == "__main__":
     # Enter the main menu
-    menu = Menu(collections)
+    menu = MainMenu(collections)
     menu.run()

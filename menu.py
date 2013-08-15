@@ -4,69 +4,57 @@
 import urwid
 from collection import Collection
 
-class Menu():
+class MainMenu():
     def __init__(self, collections):
         self.collections = collections
-        options = [
-            ('New Collection', self.new_collection),
-            ('Study Collection', self.choose_collection),
-            ('Edit Collection', self.choose_collection),
-            ('Exit', self.exit)]
-
-        self.main = urwid.Padding(
-            self.router_menu(u'Spaced Repetition', options),
-            left = 2, right = 2)
-
-        self.top = urwid.Overlay(self.main,
+        self.selected = None
+        self.widget = urwid.Padding([], left = 2, right = 2)
+        self.top = urwid.Overlay(self.widget,
             urwid.SolidFill(u'\N{MEDIUM SHADE}'),
             align = 'center', width = ('relative', 60),
             valign = 'middle', height = ('relative', 60),
             min_width = 20, min_height = 9)
 
+        self.main()
+
     def run(self):
-        """ Runs the menu system """
+        """ Enter the menu system """
         urwid.MainLoop(self.top, palette=[('reversed', 'standout', '')]).run()
 
     def exit(self, button):
-        """ Exits the menu system """
+        """ Exit the menu system """
         raise urwid.ExitMainLoop()
 
     # ----------------------------------------
     # Specific menu screens
 
-    def main_menu(self, button=None, data=None):
-        options = [
-            ('New Collection', self.new_collection),
-            ('Study Collection', self.choose_collection),
-            ('Edit Collection', self.choose_collection),
-            ('Exit', self.exit)]
+    def main(self, button=None, data=None):
+        menu = NavigationMenu('Spaced Repetition', None)
+        menu.add_option('New Collection', self.new_collection)
+        menu.add_option('Study Collection', self.study_collection)
+        menu.add_option('Edit Collection', self.choose_collection,
+            {'Forward': self.edit_collection, 'Back': self.main})
+        menu.add_option('Exit', self.exit)
 
-        self.main.original_widget = urwid.Padding(
-            self.router_menu(u'Spaced Repetition', options))
-
-    def item_chosen(self, button, choice):
-        response = urwid.Text([u'You chose ', str(choice), u'\n'])
-        done = urwid.Button(u'Ok')
-
-        urwid.connect_signal(done, 'click', self.exit)
-        self.main.original_widget = urwid.Filler(urwid.Pile([
-            response, urwid.AttrMap(done, None, focus_map='reversed')]))
+        self.widget.original_widget = urwid.Padding(menu)
 
     def choose_slide(self, button, collection):
-        self.main.original_widget = urwid.Padding(
-            self.selection_menu(
-                collection.name,
-                collection.slides,
-                self.item_chosen))
+        pass
 
-    def choose_collection(self, button):
-        self.main.original_widget = urwid.Padding(
-            self.selection_menu(
-                'Choose a collection',
-                self.collections,
-                self.choose_slide))
+    def choose_collection(self, button, callbacks):
+        def do_choose_collection(button, collection):
+            callbacks['Forward'](button, collection)
 
-    def new_collection(self, button):
+        menu = NavigationMenu('Choose a Collection', callbacks['Back'])
+        for collection in self.collections:
+            menu.add_option(collection.name, do_choose_collection, collection)
+
+        self.widget.original_widget = urwid.Padding(menu)
+
+    def study_collection(self, button):
+        pass
+
+    def new_collection(self, button, data=None):
         """ Render the menu for creating a new Collection """
 
         def do_new_collection(button, dialogue_menu):
@@ -86,10 +74,10 @@ class Menu():
         menu = DialogueMenu(
                 'Choose a collection',
                 do_new_collection,
-                self.main_menu)
+                self.main)
         menu.add_field("Name")
 
-        self.main.original_widget = urwid.Padding(menu)
+        self.widget.original_widget = urwid.Padding(menu)
     
     def edit_collection(self, button, collection):
         """ Render the menu for editing a collection """
@@ -99,10 +87,10 @@ class Menu():
 
             fields = dialogue_menu.get_fields()
 
-            if fields['Name'] != "":
+            if fields['Name']:
                 collection.name = fields['Name']
 
-            self.main_menu()
+            self.main()
 
         # ----------------------------------------
         # Start of edit_collection() code
@@ -110,54 +98,50 @@ class Menu():
         menu = DialogueMenu(
                 "Edit " + collection.name + ". Leave blank any field which you do not want to change.",
                 do_edit_collection,
-                self.main_menu)
+                self.main)
         menu.add_field("Name")
 
-        self.main.original_widget = urwid.Padding(menu)
+        self.widget.original_widget = urwid.Padding(menu)
 
-    # ----------------------------------------
-    # Constructors for menu structures
+class NavigationMenu(urwid.WidgetWrap):
+    def __init__(self, title, back):
+        if back == None:
+            self.head = [urwid.Text(title), urwid.Divider()]
+        else:
+            back_button = self._button("Back", back, self)
+            self.head = [urwid.Text(title), urwid.Divider(), back_button]
+        self.body = []
+        self._update_widget()
 
-    def selection_menu(self, title, choices, callback, cancel=None):
-        if not cancel:
-            cancel = self.main_menu
-        body = [urwid.Text(title), urwid.Divider()]
+    def add_option(self, label, callback, data=None):
+        """ Add a navigation option to the menu """
+        self.body.append(self._button(label, callback, data))
+        self._update_widget()
 
-        button = urwid.Button('Cancel', cancel)
-        body.append(urwid.AttrMap(button, None, focus_map='reversed'))
-        for c in choices:
-            button = urwid.Button(str(c), callback, c)
+    def _update_widget(self):
+        # Recreates the display widget. This should be called whenenver
+        # anything is added to head or body.
+        self.widget = urwid.ListBox(urwid.SimpleFocusListWalker(
+            self.head + self.body))
+        super().__init__(self.widget)
 
-            body.append(urwid.AttrMap(button, None, focus_map='reversed'))
-
-        return urwid.ListBox(urwid.SimpleFocusListWalker(body))
-
-    def router_menu(self, title, choices):
-        body = [urwid.Text(title), urwid.Divider()]
-
-        for c in choices:
-            button = urwid.Button(str(c[0]), c[1])
-
-            body.append(urwid.AttrMap(button, None, focus_map='reversed'))
-
-        return urwid.ListBox(urwid.SimpleFocusListWalker(body))
+    def _button(self, label, callback, data=None):
+        # An easier way to create a good looking button
+        button = urwid.Button(label, callback, data)
+        return urwid.AttrMap(button, None, focus_map='reversed')
 
 class DialogueMenu(urwid.WidgetWrap):
     def __init__(self, title, forward, back):
-        ok = urwid.Button("OK", forward, self)
-        cancel = urwid.Button("Cancel", back, self)
+        ok = self._button("OK", forward, self)
+        cancel = self._button("Cancel", back, self)
         self.head = [urwid.Text(title), urwid.Divider()]
         self.body = []
         self.foot = [ok, cancel]
         self._update_widget()
 
     def add_field(self, label):
-        """ Adds an Edit widget to the body """
-        widget = self._dialogue_box(label)
-
-        #self.body.append(urwid.AttrMap(
-            #widget, None, focus_map='reversed'))
-        self.body.append(widget)
+        """ Add an Edit widget to the body """
+        self.body.append(urwid.Edit(label))
         self._update_widget()
 
     def get_fields(self):
@@ -173,13 +157,14 @@ class DialogueMenu(urwid.WidgetWrap):
 
         return fields
 
-    def _dialogue_box(self, query):
-        # Constructs a widget for a dialogue box.
-        return urwid.Edit(query)
-
     def _update_widget(self):
         # Recreates the display widget. This should be called whenenver
         # anything is added to head, body, or foot.
         self.widget = urwid.ListBox(urwid.SimpleFocusListWalker(
             self.head + self.body + self.foot))
         super().__init__(self.widget)
+
+    def _button(self, label, callback, data=None):
+        # An easier way to create a good looking button
+        button = urwid.Button(label, callback, data)
+        return urwid.AttrMap(button, None, focus_map='reversed')
