@@ -66,7 +66,7 @@ class MainMenu():
             collection = Collection(fields['Name'])
             self.collections.append(collection)
 
-            self.edit_collection(None, collection)
+            self.main()
 
         # ----------------------------------------
         # Start of new_collection() code

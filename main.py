@@ -1,4 +1,3 @@
-import urwid
 from slide import Slide
 from collection import Collection
 from menu import MainMenu

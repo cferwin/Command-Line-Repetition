@@ -23,7 +23,7 @@ class Collection:
 
             Variables:
             n       int     Number of slides to return
-            rand    object  Source for randomness. Defaults to "random".
+            rand    object  Source of randomness. Defaults to "random".
         """
 
         return rand.sample(self.slides, n)
