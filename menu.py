@@ -26,17 +26,36 @@ class MainMenu():
         raise urwid.ExitMainLoop()
 
     # ----------------------------------------
-    # Specific menu screens
+    # Helper functions
+    # ----------------------------------------
+
+    def _update_widget(self, new_widget):
+        """ Recreates the display widget. This should be called at the end of
+        menu display functions.
+        """
+        self.widget.original_widget = urwid.Padding(new_widget)
+
+    def _button(self, label, callback, data=None):
+        """ An easier way to create a good looking button. """
+        button = urwid.Button(label, callback, data)
+        return urwid.AttrMap(button, None, focus_map='reversed')
+
+    def _edit(self, label):
+        """ An easier way to create an edit widget. """
+        return urwid.Edit(label)
+
+    # ----------------------------------------
+    # Functions for rendering menu screens
+    # ----------------------------------------
 
     def main(self, button=None, data=None):
-        menu = NavigationMenu('Spaced Repetition', None)
-        menu.add_option('New Collection', self.new_collection)
-        menu.add_option('Study Collection', self.study_collection)
-        menu.add_option('Edit Collection', self.choose_collection,
-            {'Forward': self.edit_collection, 'Back': self.main})
-        menu.add_option('Exit', self.exit)
+        menu = GenericMenu('Please select an option')
+        menu.add_widget(self._button('New Collection', self.new_collection))
+        menu.add_widget(self._button('Study Collection', self.study_collection))
+        menu.add_widget(self._button('Edit Collection', self.edit_collection))
+        menu.add_widget(self._button('Exit', self.exit))
 
-        self.widget.original_widget = urwid.Padding(menu)
+        self._update_widget(menu)
 
     def choose_slide(self, button, collection):
         pass
@@ -102,6 +121,28 @@ class MainMenu():
         menu.add_field("Name")
 
         self.widget.original_widget = urwid.Padding(menu)
+
+class GenericMenu(urwid.WidgetWrap):
+    """ A bare-bones menu meant to encapsulate the most basic functions of a
+    menu using Urwid. May be used to build more complex menus.
+    """
+    def __init__(self, title):
+        self.head = [urwid.Text(title), urwid.Divider()]
+        self.body = []
+        self._update_widget()
+
+    def add_widget(self, widget):
+        """ Add a widget to the menu """
+        self.body.append(widget)
+        self._update_widget()
+
+    def _update_widget(self):
+        """ Recreates the display widget. This should be called whenenver
+        anything is added to head or body.
+        """
+        self.widget = urwid.ListBox(urwid.SimpleFocusListWalker(
+            self.head + self.body))
+        super().__init__(self.widget)
 
 class NavigationMenu(urwid.WidgetWrap):
     def __init__(self, title, back):
