@@ -60,15 +60,18 @@ class MainMenu():
     def choose_slide(self, button, collection):
         pass
 
-    def choose_collection(self, button, callbacks):
-        def do_choose_collection(button, collection):
-            callbacks['Forward'](button, collection)
+    def choose_collection(self, forward, back=None):
+        """ Render the menu for choosing a collection from the list. """
+        if back == None:
+            back = self.main
 
-        menu = NavigationMenu('Choose a Collection', callbacks['Back'])
+        menu = GenericMenu('Choose a Collection')
+        menu.add_widget(self._button("Back", back))
         for collection in self.collections:
-            menu.add_option(collection.name, do_choose_collection, collection)
+            menu.add_widget(self._button(collection.name, forward, collection))
+        menu.add_widget(self._button("Back", back))
 
-        self.widget.original_widget = urwid.Padding(menu)
+        self._update_widget(menu)
 
     def study_collection(self, button):
         pass
@@ -93,29 +96,28 @@ class MainMenu():
 
         self._update_widget(menu)
     
-    def edit_collection(self, button, collection):
+    def edit_collection(self, button, collection=None):
         """ Render the menu for editing a collection """
 
-        def do_edit_collection(button, dialogue_menu):
+        def do_edit_collection(button, menu):
             """ Modify the collection with the data entered in the menu. """
-
-            fields = dialogue_menu.get_fields()
+            fields = menu.get_fields()
 
             if fields['Name']:
                 collection.name = fields['Name']
 
             self.main()
-
         # ----------------------------------------
-        # Start of edit_collection() code
 
-        menu = DialogueMenu(
-                "Edit " + collection.name + ". Leave blank any field which you do not want to change.",
-                do_edit_collection,
-                self.main)
-        menu.add_field("Name")
+        if collection == None:
+            self.choose_collection(self.edit_collection)
+        else:
+            menu = DialogueMenu("Edit " + collection.name + ". Leave blank any field which you do not want to change.")
+            menu.add_field("Name")
+            menu.add_widget(self._button("Save", do_edit_collection, menu))
+            menu.add_widget(self._button("Cancel", self.main))
 
-        self.widget.original_widget = urwid.Padding(menu)
+            self._update_widget(menu)
 
 class GenericMenu(urwid.WidgetWrap):
     """ A bare-bones menu meant to encapsulate the most basic functions of a
