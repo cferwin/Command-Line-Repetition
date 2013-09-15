@@ -76,27 +76,22 @@ class MainMenu():
     def new_collection(self, button, data=None):
         """ Render the menu for creating a new Collection """
 
-        def do_new_collection(button, dialogue_menu):
+        def do_new_collection(button, menu):
             """ Create a new collection with the data from the
                 'new_collection' menu.
             """
-
-            fields = dialogue_menu.get_fields()
+            fields = menu.get_fields()
             collection = Collection(fields['Name'])
             self.collections.append(collection)
 
             self.main()
-
         # ----------------------------------------
-        # Start of new_collection() code
 
-        menu = DialogueMenu(
-                'Choose a collection',
-                do_new_collection,
-                self.main)
+        menu = DialogueMenu("Fill out the fields below to create a new collection.")
         menu.add_field("Name")
+        menu.add_widget(self._button("Create Collection", do_new_collection, menu))
 
-        self.widget.original_widget = urwid.Padding(menu)
+        self._update_widget(menu)
     
     def edit_collection(self, button, collection):
         """ Render the menu for editing a collection """
@@ -171,41 +166,29 @@ class NavigationMenu(urwid.WidgetWrap):
         button = urwid.Button(label, callback, data)
         return urwid.AttrMap(button, None, focus_map='reversed')
 
-class DialogueMenu(urwid.WidgetWrap):
-    def __init__(self, title, forward, back):
-        ok = self._button("OK", forward, self)
-        cancel = self._button("Cancel", back, self)
-        self.head = [urwid.Text(title), urwid.Divider()]
-        self.body = []
-        self.foot = [ok, cancel]
-        self._update_widget()
+class DialogueMenu(GenericMenu):
+    """ A menu class which adds support for handing text fields. """
+    def __init__(self, title):
+        super().__init__(title)
 
     def add_field(self, label):
         """ Add an Edit widget to the body """
-        self.body.append(urwid.Edit(label))
-        self._update_widget()
+        self.add_widget(urwid.Edit(label))
 
     def get_fields(self):
         """ Returns the contents of all the dialogue boxes in a dictionary
             with the form, {"label": "contents"}
         """
-
         fields = {}
         for widget in self.body:
-            label = widget.caption
-            contents = widget.get_edit_text()
-            fields[label] = contents
+            # Try to get the label and contents of widgets. If it fails, the
+            # widget probably isn't an edit widget, so there's no need to
+            # worry about the exception.
+            try:
+                label = widget.caption
+                contents = widget.get_edit_text()
+                fields[label] = contents
+            except:
+                pass
 
         return fields
-
-    def _update_widget(self):
-        # Recreates the display widget. This should be called whenenver
-        # anything is added to head, body, or foot.
-        self.widget = urwid.ListBox(urwid.SimpleFocusListWalker(
-            self.head + self.body + self.foot))
-        super().__init__(self.widget)
-
-    def _button(self, label, callback, data=None):
-        # An easier way to create a good looking button
-        button = urwid.Button(label, callback, data)
-        return urwid.AttrMap(button, None, focus_map='reversed')
