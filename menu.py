@@ -57,8 +57,20 @@ class MainMenu():
 
         self._update_widget(menu)
 
-    def choose_slide(self, button, collection):
-        pass
+    def choose_slide(self, button, collection, forward=None, back=None):
+        """ Render the menu for choosing a slide from a collection. """
+        if forward == None:
+            forward = self.edit_slide
+        if back == None:
+            back = self.main
+
+        menu = GenericMenu('Choose a Slide')
+        menu.add_widget(self._button("Back", back))
+        for slide in collection.slides:
+            menu.add_widget(self._button(slide.prompt, forward, slide))
+        menu.add_widget(self._button("Back", back))
+
+        self._update_widget(menu)
 
     def choose_collection(self, forward, back=None):
         """ Render the menu for choosing a collection from the list. """
@@ -114,10 +126,35 @@ class MainMenu():
         else:
             menu = DialogueMenu("Edit " + collection.name + ". Leave blank any field which you do not want to change.")
             menu.add_field("Name")
+            menu.add_widget(self._button("Edit Slides", self.choose_slide, collection))
+            menu.add_widget(urwid.Divider('-'))
             menu.add_widget(self._button("Save", do_edit_collection, menu))
             menu.add_widget(self._button("Cancel", self.main))
 
             self._update_widget(menu)
+
+    def edit_slide(self, button, slide):
+        """ Render the menu for editing a slide in a collection """
+        def do_edit_collection(button, menu):
+            """ Modify the slide with the data entered in the menu. """
+            fields = menu.get_fields()
+
+            if fields['Prompt']:
+                slide.prompt = fields['Prompt']
+            if fields['Answer']:
+                slide.answer = fields['Answer']
+
+            self.main()
+        # ----------------------------------------
+
+        menu = DialogueMenu("Edit \"" + slide.prompt + "\". Leave blank any field which you do not want to change.")
+        menu.add_field("Prompt")
+        menu.add_field("Answer")
+        menu.add_widget(urwid.Divider('-'))
+        menu.add_widget(self._button("Save", do_edit_collection, menu))
+        menu.add_widget(self._button("Cancel", self.main))
+
+        self._update_widget(menu)
 
 class GenericMenu(urwid.WidgetWrap):
     """ A bare-bones menu meant to encapsulate the most basic functions of a
