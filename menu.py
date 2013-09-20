@@ -57,6 +57,53 @@ class MainMenu():
 
         self._update_widget(menu)
 
+    def study_collection(self, button, collection=None):
+        """ Render the menu for studying a collection """
+
+        def study_prompt(button, slide):
+            """ Render the menu for the first half of the study menu: reading
+                the prompt.
+            """
+            menu = GenericMenu("Studying " + collection.name + ".")
+            menu.add_widget(urwid.Text(slide.prompt))
+            menu.add_widget(urwid.GridFlow(
+                [
+                    self._button("Flip", study_answer, slide)
+                ],
+                40, 1, 1, 'center'))
+
+            self._update_widget(menu)
+
+        def study_answer(button, slide):
+            """ Render the menu for the first half of the study menu: reading
+                the answer and determining how difficult the question was.
+            """
+            menu = GenericMenu("Studying " + collection.name + ".")
+            menu.add_widget(urwid.Text(slide.answer))
+            menu.add_widget(urwid.GridFlow(
+                [
+                    self._button("Easy", study_process_difficulty, (slide, 1))
+                    ,self._button("Medium", study_process_difficulty, (slide, 2))
+                    ,self._button("Hard", study_process_difficulty, (slide, 3))
+                    ,self._button("Back", self.main)
+                ],
+                20, 1, 1, 'center'))
+
+            self._update_widget(menu)
+
+        def study_process_difficulty(button, data):
+            """ Determine when the slide should be reviewed next based on the
+                subjective difficulty of the question.
+            """
+            self.study_collection(None, collection)
+        # ----------------------------------------
+
+        if collection == None:
+            self.choose_collection(self.study_collection)
+        else:
+            slide = collection.get_random_slides(1)[0]
+            study_prompt(None, slide)
+
     def choose_slide(self, button, collection, forward=None, back=None):
         """ Render the menu for choosing a slide from a collection. """
         if forward == None:
@@ -84,9 +131,6 @@ class MainMenu():
         menu.add_widget(self._button("Back", back))
 
         self._update_widget(menu)
-
-    def study_collection(self, button):
-        pass
 
     def new_collection(self, button, data=None):
         """ Render the menu for creating a new Collection """
