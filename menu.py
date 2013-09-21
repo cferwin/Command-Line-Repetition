@@ -94,14 +94,39 @@ class MainMenu():
         def study_process_difficulty(button, data):
             """ Determine when the slide should be reviewed next based on the
                 subjective difficulty of the question.
+
+                The "data" parameter should be a data structure with a slide in
+                the first position (data[0]) and an integer representing
+                difficulty (generally from 1 to 3) in the second position
+                (data[1]).
             """
+            # TODO: Find a better way to pass the slide and difficulty in.
+            slide = data[0]
+            difficulty = data[1]
+
+            # How long should the user wait to review this slide again?
+            if difficulty == 1:
+                # If it's easy, double the time
+                multiplier = 2
+            elif difficulty == 3:
+                # If it's hard, halve the time
+                multiplier = 0.5
+            else:
+                # If it's medium or anything else, leave the time alone
+                multiplier = 1
+
+            slide.set_new_wait_time(slide.previous_wait_time * multiplier)
+
             self.study_collection(None, collection)
         # ----------------------------------------
 
         if collection == None:
             self.choose_collection(self.study_collection)
         else:
-            slide = collection.get_random_slides(1)[0]
+            slide = collection.get_next_slide()
+            if slide == None:
+                slide = collection.get_random_slides(1)[0]
+
             study_prompt(None, slide)
 
     def choose_slide(self, button, collection, forward=None, back=None):

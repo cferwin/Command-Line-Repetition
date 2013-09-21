@@ -27,3 +27,12 @@ class Collection:
         """
 
         return rand.sample(self.slides, n)
+
+    def get_next_slide(self):
+        """ Get the next slide that should be studied. If no slide is due for
+        studying, None is returned. """
+        for slide in self.slides:
+            if slide.get_elapsed_wait_time() <= 0:
+                return slide
+
+        return None
