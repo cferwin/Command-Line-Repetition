@@ -3,6 +3,7 @@
 
 import urwid
 from collection import Collection
+from slide import Slide
 
 class MainMenu():
     def __init__(self, collections):
@@ -195,12 +196,34 @@ class MainMenu():
         else:
             menu = DialogueMenu("Edit " + collection.name + ". Leave blank any field which you do not want to change.")
             menu.add_field("Name")
+            menu.add_widget(self._button("Create New Slide", self.new_slide, collection))
             menu.add_widget(self._button("Edit Slides", self.choose_slide, collection))
             menu.add_widget(urwid.Divider('-'))
             menu.add_widget(self._button("Save", do_edit_collection, menu))
             menu.add_widget(self._button("Cancel", self.main))
 
             self._update_widget(menu)
+
+    def new_slide(self, button, collection):
+        """ Render the menu for creating a new Slide """
+
+        def do_new_slide(button, menu):
+            """ Create a new slide with the data from the 'new_slide' menu. """
+            fields = menu.get_fields()
+            # TODO: Add a check to be sure the slide is valid.
+            slide = Slide(fields['Prompt'], fields['Answer'])
+            collection.add_slide(slide)
+
+            self.edit_collection(None, collection)
+        # ----------------------------------------
+
+        # TODO: Make slide creation easier and faster.
+        menu = DialogueMenu("Fill out the fields below to create a new slide.")
+        menu.add_field("Prompt")
+        menu.add_field("Answer")
+        menu.add_widget(self._button("Create Slide", do_new_slide, menu))
+
+        self._update_widget(menu)
 
     def edit_slide(self, button, slide):
         """ Render the menu for editing a slide in a collection """
