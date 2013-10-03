@@ -1,14 +1,15 @@
-""" Stores functions for rendering menus with Urwid.
-"""
-
 import urwid
+import data
 from collection import Collection
 from slide import Slide
 
 class MainMenu():
-    def __init__(self, collections):
-        self.collections = collections
-        self.selected = None
+    def __init__(self, path):
+        # Load data
+        self.path = path
+        self.collections = data.load_data_file(path)
+
+        # Initialize the menu
         self.widget = urwid.Padding([], left = 2, right = 2)
         self.top = urwid.Overlay(self.widget,
             urwid.SolidFill(u'\N{MEDIUM SHADE}'),
@@ -16,6 +17,7 @@ class MainMenu():
             valign = 'middle', height = ('relative', 60),
             min_width = 20, min_height = 9)
 
+        # Enter the main menu
         self.main()
 
     def run(self):
@@ -23,7 +25,8 @@ class MainMenu():
         urwid.MainLoop(self.top, palette=[('reversed', 'standout', '')]).run()
 
     def exit(self, button):
-        """ Exit the menu system """
+        """ Save data and exit the menu system """
+        data.save_data_file(self.path, self.collections)
         raise urwid.ExitMainLoop()
 
     # ----------------------------------------
@@ -40,10 +43,6 @@ class MainMenu():
         """ An easier way to create a good looking button. """
         button = urwid.Button(label, callback, data)
         return urwid.AttrMap(button, None, focus_map='reversed')
-
-    def _edit(self, label):
-        """ An easier way to create an edit widget. """
-        return urwid.Edit(label)
 
     # ----------------------------------------
     # Functions for rendering menu screens
